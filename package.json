@@ -1,0 +1,53 @@
+{
+  "name": "Ligo-taquito-skeleton",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/repo.git"
+  },
+  "author": "e1",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/repo/issues"
+  },
+  "homepage": "https://github.com/repo#readme",
+  "dependencies": {
+    "@taquito/signer": "^12.0.0",
+    "@taquito/taquito": "^12.0.0",
+    "@types/jest": "^27.0.2",
+    "chalk": "<5.0.0",
+    "commander": "^8.3.0",
+    "date-fns": "^2.25.0",
+    "dotenv": "^15.0.0",
+    "jest": "^27.0.6",
+    "ts-jest": "^27.0.5",
+    "ts-node": "^10.2.1",
+    "typescript": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=16",
+    "yarn": ">=1.22.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.8.0",
+    "@typescript-eslint/parser": "^5.8.0",
+    "eslint": "^8.2.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-jest": "^25.2.4",
+    "eslint-plugin-jest-formatting": "^3.0.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.5.1"
+  },
+  "scripts": {
+    "cli": "ts-node ./scripts/cli.ts",
+    "help": "yarn cli --help",
+    "start-sandbox": "yarn cli sandbox --up",
+    "stop-sandbox": "yarn cli sandbox --down",
+    "migrate": "yarn cli migrate",
+    "compile": "yarn compile-contract",
+    "compile-contract": "yarn cli compile -F json",
+    "test": "jest"
+  }
+}
