@@ -10,6 +10,8 @@ function main(
   const s               : fa2_storage)
                         : return is
   case action of [
+  | Set_admin(params)        -> (no_operations, set_admin(params, s))
+  | Approve_admin            -> (no_operations, approve_admin(s))
   | Transfer(params)         -> (no_operations, transfer(s, params))
   | Update_operators(params) -> (no_operations, update_operators(s, params))
   | Balance_of(params)       -> (get_balance_of(params, s), s)

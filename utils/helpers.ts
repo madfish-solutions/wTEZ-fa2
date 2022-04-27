@@ -39,7 +39,7 @@ export declare type FA12TokenType = {
 
 export declare type TokenType = FA12 | FA2;
 
-const rpcNode = `${config.networks.sandbox.host}:${config.networks.sandbox.port}`;
+const rpcNode = config.networks.sandbox.rpc;
 export const Tezos = new TezosToolkit(rpcNode);
 
 export async function initTezos(

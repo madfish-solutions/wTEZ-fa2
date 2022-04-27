@@ -17,13 +17,17 @@ function iterate_transfer(const s : fa2_storage; const params : transfer_param) 
 
 
         (* Get source balance *)
-        const src_balance : nat = get_balance_by_token(src_account, transfer_dst.token_id);
+        const src_balance : nat = get_balance(params.from_, s.ledger);
 
         (* Balance check *)
         (* Update source balance *)
-        src_account.balances[transfer_dst.token_id] := get_nat_or_fail(
-          src_balance - transfer_dst.amount,
-          Errors.FA2.lowBalance
+        s.ledger := set_balance(
+          params.from_,
+          get_nat_or_fail(
+            src_balance - transfer_dst.amount,
+            Errors.FA2.lowBalance
+          ),
+          s.ledger
         );
 
         (* Update storage *)
@@ -33,11 +37,14 @@ function iterate_transfer(const s : fa2_storage; const params : transfer_param) 
         var dst_account : account := get_account(transfer_dst.to_, s);
 
         (* Get receiver balance *)
-        const dst_balance : nat = get_balance_by_token(dst_account, transfer_dst.token_id);
+        const dst_balance : nat = get_balance(transfer_dst.to_, s.ledger);
 
         (* Update destination balance *)
-        dst_account.balances[transfer_dst.token_id] := dst_balance + transfer_dst.amount;
-
+        s.ledger := set_balance(
+          transfer_dst.to_,
+          dst_balance + transfer_dst.amount,
+          s.ledger
+        );
         (* Update storage *)
         s.account_info := set_account(transfer_dst.to_, dst_account, s.account_info);
     } with s
@@ -82,13 +89,10 @@ function get_balance_of(const balance_params : balance_params; const s : fa2_sto
     (* Perform single balance lookup *)
     function look_up_balance(const l: list(balance_of_response); const request : balance_of_request) : list(balance_of_response) is
       block {
-        (* Retrieve the asked account from the storage *)
-        const user : account = get_account(request.owner, s);
-
         (* Form the response *)
         var response : balance_of_response := record [
           request = request;
-          balance = get_balance_by_token(user, request.token_id);
+          balance = get_balance(request.owner, s.ledger);
         ];
       } with response # l;
 
@@ -120,10 +124,13 @@ function make_mint(
 
     (* Get receiver initial balance *)
     const dst_balance : nat =
-      get_balance_by_token(dst_account, 0n);
+      get_balance(param.receiver, s.ledger);
 
     (* Mint new tokens *)
-    dst_account.balances[0n] := dst_balance + param.amount;
+    s.ledger := set_balance(
+      param.receiver,
+      dst_balance + param.amount,
+      s.ledger);
 
     (* Get token info *)
     var token : token_info := get_token_info(0n, s);
@@ -149,10 +156,13 @@ function burn(
 
     (* Get receiver initial balance *)
     const src_balance : nat =
-      get_balance_by_token(src_account, 0n);
+      get_balance(param.from_, s.ledger);
 
     (* Burn tokens *)
-    src_account.balances[0n] := get_nat_or_fail(src_balance - param.amount, Errors.FA2.lowBalance);
+    s.ledger := set_balance(
+      param.from_,
+      get_nat_or_fail(src_balance - param.amount, Errors.FA2.lowBalance),
+      s.ledger);
 
     (* Get token info *)
     var token : token_info := get_token_info(0n, s);
@@ -208,4 +218,23 @@ function delegate(
       current_delegate = new_delegate
     ]
   )
+
+
+function set_admin(
+  const newAdmin        : address;
+  const s               : fa2_storage)
+                        : fa2_storage is
+  block {
+  require(s.admin = Tezos.sender, Errors.FA2.notAdmin);
+  } with s with record[ pending_admin = Some(newAdmin) ]
+
+function approve_admin(
+  var s                 : fa2_storage)
+                        : fa2_storage is
+  block {
+    const pending_admin = unwrap(s.pending_admin, "no-admin-candidate");
+    require(Tezos.sender = pending_admin or Tezos.sender = s.admin, Errors.FA2.notAdmin);
+    s.admin := Tezos.sender;
+    s.pending_admin := (None : option(address));
+  } with s
 

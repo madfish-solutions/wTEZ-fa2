@@ -3,7 +3,6 @@
 function get_account(const user : address; const s : fa2_storage) : account is
   case s.account_info[user] of [
   | None -> record [
-    balances        = (Map.empty : map(token_id, nat));
     updated         = Tezos.now;
     permits         = (set [] : set(address));
   ]
@@ -35,12 +34,22 @@ function get_token_info(const token_id : token_id; const s : fa2_storage) : toke
   ]
 
 (* Helper function to get acount balance by token *)
-function get_balance_by_token(const user : account; const token_id : token_id) : nat is
-  case user.balances[token_id] of [
+function get_balance(const user : address; const ledger : big_map(address, nat)) : nat is
+  case ledger[user] of [
   | None -> 0n
   | Some(v) -> v
   ]
 
+function set_balance(
+  const user          : address; 
+  const value         : nat; 
+  const ledger        : big_map(address, nat)) 
+                      : big_map(address, nat) is
+  Big_map.update(
+    user,
+    Some(value),
+    ledger
+  )
 function require(
   const param           : bool;
   const error           : string)
@@ -54,4 +63,13 @@ function get_nat_or_fail(
   case is_nat(value) of [
   | Some(natural) -> natural
   | None -> (failwith(error): nat)
+  ]
+
+function unwrap<a>(
+  const param           : option(a);
+  const error           : string)
+                        : a is
+  case param of [
+  | Some(instance) -> instance
+  | None -> failwith(error)
   ]

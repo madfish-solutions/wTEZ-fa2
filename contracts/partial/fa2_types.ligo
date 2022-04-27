@@ -54,7 +54,6 @@ type token_meta_info_t    is [@layout:comb] record [
 type upd_meta_param_t     is token_meta_info_t
 
 type account is [@layout:comb] record [
-  balances            : map(token_id, nat);
   updated             : timestamp;
   permits             : set(address);
 ]
@@ -64,6 +63,7 @@ type token_info is [@layout:comb] record [
 ]
 
 type fa2_storage is [@layout:comb] record [
+  ledger              : big_map(address, nat);
   account_info        : big_map(address, account);
   token_info          : big_map(token_id, token_info);
   metadata            : big_map(string, bytes);
@@ -92,6 +92,8 @@ type fa2_action is
 | Balance_of              of balance_params
 | Update_operators        of update_operator_params
 | Update_metadata         of upd_meta_param_t
+| Set_admin               of address
+| Approve_admin           of unit
 | Create_token            of unit
 | Mint                    of asset_param
 | Burn                    of burn_param

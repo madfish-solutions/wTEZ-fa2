@@ -1,12 +1,12 @@
+import { accounts } from "../utils/cli";
 import { MichelsonMap } from "@taquito/taquito";
 import {
   AccountInfo,
   KeyHashString,
   TokenMetadata,
   TokenStorage,
-} from "../API/types";
-import { accounts } from "../utils/constants";
-import { BytesString, TezosAddress } from "../utils/helpers";
+} from "../../API/types";
+import { BytesString, TezosAddress } from "../../utils/helpers";
 import BigNumber from "bignumber.js";
 
 const metadata = MichelsonMap.fromLiteral({
@@ -21,7 +21,7 @@ const metadata = MichelsonMap.fromLiteral({
   ).toString("hex"),
 }) as MichelsonMap<string, BytesString>;
 
-const storage: TokenStorage = {
+const testStorage: TokenStorage = {
   admin: accounts.alice.pkh as TezosAddress,
   pending_admin: null as TezosAddress,
   last_token_id: 1,
@@ -56,4 +56,4 @@ const storage: TokenStorage = {
   current_delegate: null as KeyHashString,
 };
 
-export default storage;
+export default testStorage;
