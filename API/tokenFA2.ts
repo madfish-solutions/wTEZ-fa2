@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Contract, TezosToolkit } from "@taquito/taquito";
+import { Contract, MichelsonMap, TezosToolkit } from "@taquito/taquito";
 import { TransactionOperation } from "@taquito/taquito/dist/types/operations/transaction-operation";
 const defaultTokenId = 0;
 import BigNumber from "bignumber.js";
-import { KeyHashString, TokenStorage } from "./types";
-import { prepareProviderOptions, TezosAddress } from "../utils/helpers";
+import { KeyHashString, TokenMetadata, TokenStorage } from "./types";
+import { BytesString, prepareProviderOptions, TezosAddress } from "../utils/helpers";
 import { confirmOperation } from "../utils/confirmation";
 
 export class SingleTokenFA2 {
@@ -111,6 +111,26 @@ export class SingleTokenFA2 {
     delegate: KeyHashString | null
   ): Promise<TransactionOperation> {
     const operation = await this.contract.methods.set_delegate(delegate).send();
+    await confirmOperation(this.Tezos, operation.hash);
+    return operation;
+  }
+
+  async set_admin(admin: TezosAddress): Promise<TransactionOperation> {
+    const operation = await this.contract.methods.set_admin(admin).send();
+    await confirmOperation(this.Tezos, operation.hash);
+    return operation;
+  }
+
+  async approve_admin(): Promise<TransactionOperation> {
+    const operation = await this.contract.methods.approve_admin().send();
+    await confirmOperation(this.Tezos, operation.hash);
+    return operation;
+  }
+
+  async create_token(
+    metadata: MichelsonMap<string, BytesString>
+  ): Promise<TransactionOperation> {
+    const operation = await this.contract.methods.create_token(metadata).send();
     await confirmOperation(this.Tezos, operation.hash);
     return operation;
   }

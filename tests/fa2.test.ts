@@ -5,19 +5,23 @@ import exampleCode from "../build/fa2.json";
 import { confirmOperation } from "../utils/confirmation";
 import { SingleTokenFA2 } from "../API/tokenFA2";
 import testStorage from "./storage/storage";
-import { TezosToolkit } from "@taquito/taquito";
+import { MichelsonMap, TezosToolkit } from "@taquito/taquito";
 import BigNumber from "bignumber.js";
-import { failCase } from "../utils/helpers";
+import { BytesString, failCase } from "../utils/helpers";
+import { InMemorySigner } from "@taquito/signer";
 
 describe("wTEZ FA2 single-asset tests", () => {
   let wTEZ: SingleTokenFA2;
+  let wTEZcandidate: SingleTokenFA2;
   let wTEZuser: SingleTokenFA2;
   const bobsTezos = new TezosToolkit(Tezos.rpc);
+  const evesTezos = new TezosToolkit(Tezos.rpc);
 
   beforeAll(async () => {
     try {
       Tezos.setSignerProvider(signerAlice);
       bobsTezos.setSignerProvider(signerBob);
+      evesTezos.setSignerProvider(new InMemorySigner(accounts.eve.sk));
 
       const deployedContract = await Tezos.contract.originate({
         storage: testStorage,
@@ -25,6 +29,10 @@ describe("wTEZ FA2 single-asset tests", () => {
       });
       await confirmOperation(Tezos, deployedContract.hash);
       wTEZ = await SingleTokenFA2.init(Tezos, deployedContract.contractAddress);
+      wTEZcandidate = await SingleTokenFA2.init(
+        evesTezos,
+        deployedContract.contractAddress
+      );
       wTEZuser = await SingleTokenFA2.init(
         bobsTezos,
         deployedContract.contractAddress
@@ -34,6 +42,26 @@ describe("wTEZ FA2 single-asset tests", () => {
       throw e;
     }
   });
+
+  it("create_token call EP fails (already created)", async () =>
+    await failCase(
+      "alice",
+      async () =>
+        await wTEZuser.create_token(
+          MichelsonMap.fromLiteral({
+            symbol: Buffer.from("wTEZ").toString("hex"),
+            name: Buffer.from("Wrapped Tezos FA2 token").toString("hex"),
+            decimals: Buffer.from("6").toString("hex"),
+            is_transferable: Buffer.from("true").toString("hex"),
+            is_boolean_amount: Buffer.from("false").toString("hex"),
+            should_prefer_symbol: Buffer.from("false").toString("hex"),
+            thumbnailUri: Buffer.from(
+              "https://www.vhv.rs/dpng/d/523-5236354_tezos-pre-launch-xtz-icon-tezos-logo-hd.png"
+            ).toString("hex"),
+          }) as MichelsonMap<string, BytesString>
+        ),
+      "Single-asset-FA2"
+    ));
 
   describe("testing Mint entrypoint", () => {
     it("mint by send tezos to contract", async () => {
@@ -107,12 +135,60 @@ describe("wTEZ FA2 single-asset tests", () => {
   });
 
   describe("testing set_delegate entrypoint", () => {
+    it("set_delegate call EP fails if not admin", async () =>
+      await failCase(
+        "bob",
+        async () => await wTEZuser.set_delegate(accounts.bob.pkh),
+        "FA2_NOT_ADMIN"
+      ));
+
     it("set_delegate call EP to contract", async function () {
       await wTEZ.updateStorage();
       expect(wTEZ.storage.current_delegate).not.toBe(accounts.alice.pkh);
       await wTEZ.set_delegate(accounts.alice.pkh);
       await wTEZ.updateStorage();
       expect(wTEZ.storage.current_delegate).toStrictEqual(accounts.alice.pkh);
+    });
+  });
+
+  describe("testing change admin", () => {
+    it("set_admin call EP fails if not admin", async () =>
+      await failCase(
+        "bob",
+        async () => await wTEZuser.set_admin(accounts.bob.pkh),
+        "FA2_NOT_ADMIN"
+      ));
+
+    it("set_admin call EP to contract", async () => {
+      await wTEZ.updateStorage();
+      expect(wTEZ.storage.admin).not.toBe(accounts.eve.pkh);
+      expect(wTEZ.storage.pending_admin).not.toBe(accounts.eve.pkh);
+      await wTEZ.set_admin(accounts.eve.pkh);
+      await wTEZ.updateStorage();
+      expect(wTEZ.storage.admin).not.toBe(accounts.eve.pkh);
+      expect(wTEZ.storage.pending_admin).toBe(accounts.eve.pkh);
+    });
+
+    it("approve_admin call EP fails if not admin or candidate", async () =>
+      await failCase(
+        "eve",
+        async () => {
+          await wTEZuser.updateStorage();
+          expect(wTEZuser.storage.admin).not.toBe(accounts.bob.pkh);
+          expect(wTEZuser.storage.pending_admin).not.toBe(accounts.bob.pkh);
+          await wTEZuser.approve_admin();
+        },
+        "FA2_NOT_ADMIN"
+      ));
+
+    it("approve_admin call EP to contract", async () => {
+      await wTEZcandidate.updateStorage();
+      expect(wTEZcandidate.storage.admin).not.toBe(accounts.eve.pkh);
+      expect(wTEZcandidate.storage.pending_admin).toBe(accounts.eve.pkh);
+      await wTEZcandidate.approve_admin();
+      await wTEZcandidate.updateStorage();
+      expect(wTEZcandidate.storage.admin).toBe(accounts.eve.pkh);
+      expect(wTEZcandidate.storage.pending_admin).toBeNull();
     });
   });
 
