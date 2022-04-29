@@ -25,7 +25,7 @@ jobs:
       - name: Compile contracts for tests
         run: yarn compile
       - name: Start sandbox and wait for initialization
-        run: yarn start-sandbox && sleep 20s
+        run: yarn start-sandbox && sleep 10s
       - name: Test the contracts
         run: yarn test
       - name: Stop sandbox
