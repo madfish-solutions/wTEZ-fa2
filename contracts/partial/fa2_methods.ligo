@@ -1,174 +1,97 @@
-
-(* Perform transfers *)
-function iterate_transfer(const s : fa2_storage; const params : transfer_param) : fa2_storage is
-  block {
-    (* Perform single transfer *)
-    function make_transfer(var s : fa2_storage; const transfer_dst : transfer_destination) : fa2_storage is
-      block {
-        (* Create or get source account *)
-        var src_account : account := get_account(params.from_, s);
-
-        (* Check permissions *)
-        require(params.from_ = Tezos.sender or src_account.permits contains Tezos.sender, Errors.FA2.notOperator);
-
-
-        // (* Token id check *)
-        require(transfer_dst.token_id < s.last_token_id, Errors.FA2.undefined);
-
-
-        (* Get source balance *)
-        const src_balance : nat = get_balance(params.from_, s.ledger);
-
-        (* Balance check *)
-        (* Update source balance *)
-        s.ledger := set_balance(
-          params.from_,
-          get_nat_or_fail(
-            src_balance - transfer_dst.amount,
-            Errors.FA2.lowBalance
-          ),
-          s.ledger
-        );
-
-        (* Update storage *)
-        s.account_info := set_account(params.from_, src_account, s.account_info);
-
-        (* Create or get destination account *)
-        var dst_account : account := get_account(transfer_dst.to_, s);
-
-        (* Get receiver balance *)
-        const dst_balance : nat = get_balance(transfer_dst.to_, s.ledger);
-
-        (* Update destination balance *)
-        s.ledger := set_balance(
-          transfer_dst.to_,
-          dst_balance + transfer_dst.amount,
-          s.ledger
-        );
-        (* Update storage *)
-        s.account_info := set_account(transfer_dst.to_, dst_account, s.account_info);
-    } with s
-} with List.fold(make_transfer, params.txs, s)
-
-(* Perform single operator update *)
-function iterate_update_operators(var s : fa2_storage; const params : update_operator_param) : fa2_storage is
-  block {
-    case params of [
-    | Add_operator(param) -> block {
-      (* Check an owner *)
-      require(Tezos.sender = param.owner, Errors.FA2.notOwner);
-
-      (* Create or get source account *)
-      var src_account : account := get_account(param.owner, s);
-
-      (* Add operator *)
-      src_account.permits := Set.add(param.operator, src_account.permits);
-
-      (* Update storage *)
-      s.account_info := set_account(param.owner, src_account, s.account_info);
-    }
-    | Remove_operator(param) -> block {
-      (* Check an owner *)
-      require(Tezos.sender = param.owner, Errors.FA2.notOwner);
-
-      (* Create or get source account *)
-      var src_account : account := get_account(param.owner, s);
-
-      (* Remove operator *)
-      src_account.permits := Set.remove(param.operator, src_account.permits);
-
-      (* Update storage *)
-      s.account_info := set_account(param.owner, src_account, s.account_info);
-    }
-    ]
-  } with s
-
 (* Perform balance lookup *)
-function get_balance_of(const balance_params : balance_params; const s : fa2_storage) : list(operation) is
+function get_balance_of(
+  const balance_params  : balance_params_t;
+  const s               : fa2_storage_t)
+                        : list(operation) is
   block {
     (* Perform single balance lookup *)
-    function look_up_balance(const l: list(balance_of_response); const request : balance_of_request) : list(balance_of_response) is
+    function look_up_balance(const l: list(balance_of_response_t); const request : balance_of_request_t) : list(balance_of_response_t) is
       block {
         (* Form the response *)
-        var response : balance_of_response := record [
+        var response : balance_of_response_t := record [
           request = request;
           balance = get_balance(request.owner, s.ledger);
         ];
       } with response # l;
 
     (* Collect balances info *)
-    const accumulated_response : list(balance_of_response) = List.fold(look_up_balance, balance_params.requests, (nil: list(balance_of_response)));
+    const accumulated_response : list(balance_of_response_t) = List.fold(look_up_balance, balance_params.requests, (nil: list(balance_of_response_t)));
   } with list [Tezos.transaction(
     accumulated_response,
     0tz,
     balance_params.callback
   )]
 
-function update_operators(const s : fa2_storage; const params : update_operator_params) : fa2_storage is
+function update_operators(
+  const s               : fa2_storage_t;
+  const params          : update_operator_params_t)
+                        : fa2_storage_t is
   List.fold(iterate_update_operators, params, s)
 
-function transfer(const s : fa2_storage; const params : transfer_params) : fa2_storage is
+function transfer(
+  const s               : fa2_storage_t;
+  const params          : transfer_params_t)
+                        : fa2_storage_t is
   List.fold(iterate_transfer, params, s)
 
 (* Perform minting new tokens *)
 function make_mint(
-  const param       : asset_param;
-  var s             : fa2_storage)
-                    : fa2_storage is
+  const receiver        : address;
+  var s                 : fa2_storage_t)
+                        : fa2_storage_t is
   block {
-    require(Tezos.amount > 0mutez, "zero-mint");
-    require(param.amount = Tezos.amount/1mutez, "wrong-TEZ-amount");
+    Utils.require(Tezos.amount > 0mutez, Errors.WrappedTezos.zero_mint);
+    const value = Utils.from_mutez(Tezos.amount);
 
     (* Get receiver account *)
-    var dst_account : account := get_account(param.receiver, s);
+    var dst_account : account_t := get_account(receiver, s.account_info);
 
     (* Get receiver initial balance *)
     const dst_balance : nat =
-      get_balance(param.receiver, s.ledger);
+      get_balance(receiver, s.ledger);
 
     (* Mint new tokens *)
     s.ledger := set_balance(
-      param.receiver,
-      dst_balance + param.amount,
+      receiver,
+      dst_balance + value,
       s.ledger);
 
     (* Get token info *)
-    var token : token_info := get_token_info(0n, s);
+    var token : token_info_t := get_token_info(0n, s.token_info);
 
     (* Update token total supply *)
-    token.total_supply := token.total_supply + param.amount;
+    token.total_supply := token.total_supply + value;
 
     (* Update storage *)
-    s.account_info := set_account(param.receiver, dst_account, s.account_info);
+    s.account_info := set_account(receiver, dst_account, s.account_info);
     s.token_info[0n] := token;
   } with s
 
 function burn(
-  const param       : burn_param;
-  var s             : fa2_storage)
-                    : return is
+  const param           : burn_param_t;
+  var s                 : fa2_storage_t)
+                        : return_t is
   block {
     (* Get sender account *)
-    var src_account : account := get_account(param.from_, s);
+    var src_account : account_t := get_account(param.from_, s.account_info);
 
-    require(param.from_ = Tezos.sender or src_account.permits contains Tezos.sender, Errors.FA2.notOperator);
+    Utils.require(param.from_ = Tezos.sender or src_account.operators contains Tezos.sender, Errors.FA2.not_operator);
 
 
     (* Get receiver initial balance *)
-    const src_balance : nat =
-      get_balance(param.from_, s.ledger);
+    const src_balance : nat = get_balance(param.from_, s.ledger);
 
     (* Burn tokens *)
     s.ledger := set_balance(
       param.from_,
-      get_nat_or_fail(src_balance - param.amount, Errors.FA2.lowBalance),
+      Utils.get_nat_or_fail(src_balance - param.amount, Errors.FA2.low_balance),
       s.ledger);
 
     (* Get token info *)
-    var token : token_info := get_token_info(0n, s);
+    var token : token_info_t := get_token_info(0n, s.token_info);
 
     (* Update token total supply *)
-    token.total_supply := get_nat_or_fail(token.total_supply - param.amount, Errors.FA2.lowBalance);
+    token.total_supply := Utils.get_nat_or_fail(token.total_supply - param.amount, Errors.FA2.low_balance);
 
     (* Update storage *)
     s.account_info := set_account(param.from_, src_account, s.account_info);
@@ -176,40 +99,58 @@ function burn(
     const operations = list[
       Tezos.transaction(
         Unit,
-        param.amount * 1mutez,
-        (Tezos.get_contract_with_error(param.receiver, "Non-Tez-receiver"): contract(unit))
+        Utils.to_mutez(param.amount),
+        (Tezos.get_contract_with_error(param.receiver, Errors.WrappedTezos.not_for_tez): contract(unit))
       )
     ]
   } with (operations, s)
 
-function create_token(var s : fa2_storage)
-                            : fa2_storage is
+function get_baking_rewards(
+  const receiver        : address;
+  const s               : fa2_storage_t)
+                        : return_t is
   block {
-    require(s.last_token_id < 1n, "Single-asset-FA2");
-    require(s.admin = Tezos.sender, Errors.FA2.notAdmin);
+    Utils.require(s.admin = Tezos.sender, Errors.FA2.not_admin);
+    const token : token_info_t = get_token_info(0n, s.token_info);
+    const rewards = Utils.unwrap(Tezos.balance - Utils.to_mutez(token.total_supply), Errors.WrappedTezos.low_rewards);
+    const operations = list[
+      Tezos.transaction(
+        Unit,
+        rewards,
+        (Tezos.get_contract_with_error(receiver, Errors.WrappedTezos.not_for_tez): contract(unit))
+      )
+    ]
+  } with (operations, s)
 
-    s.token_metadata[s.last_token_id] := record [
-      token_id = s.last_token_id;
-      token_info = wTez_metadata;
+function create_token(
+  var s                 : fa2_storage_t)
+                        : fa2_storage_t is
+  block {
+    Utils.require(s.token_count < 1n, Errors.WrappedTezos.single);
+    Utils.require(s.admin = Tezos.sender, Errors.FA2.not_admin);
+
+    s.token_metadata[s.token_count] := record [
+      token_id = s.token_count;
+      token_info = Constants.wTez_metadata;
     ];
-    s.last_token_id := s.last_token_id + 1n;
+    s.token_count := s.token_count + 1n;
   } with s
 
 function update_metadata(
     const params        : upd_meta_param_t;
-    var   s             : fa2_storage)
-                        : fa2_storage is
+    var   s             : fa2_storage_t)
+                        : fa2_storage_t is
   block {
-    require(s.admin = Tezos.sender, Errors.FA2.notAdmin);
+    Utils.require(s.admin = Tezos.sender, Errors.FA2.not_admin);
     s.token_metadata[params.token_id] := params;
   } with s
 
 function delegate(
   const new_delegate    : option(key_hash);
-  var s                 : fa2_storage)
-                        : return is
+  var s                 : fa2_storage_t)
+                        : return_t is
   block {
-    require(s.admin = Tezos.sender, Errors.FA2.notAdmin);
+    Utils.require(s.admin = Tezos.sender, Errors.FA2.not_admin);
   } with (
     list[
       Tezos.set_delegate(new_delegate)
@@ -221,19 +162,19 @@ function delegate(
 
 
 function set_admin(
-  const newAdmin        : address;
-  const s               : fa2_storage)
-                        : fa2_storage is
+  const new_admin        : address;
+  const s               : fa2_storage_t)
+                        : fa2_storage_t is
   block {
-  require(s.admin = Tezos.sender, Errors.FA2.notAdmin);
-  } with s with record[ pending_admin = Some(newAdmin) ]
+    Utils.require(s.admin = Tezos.sender, Errors.FA2.not_admin);
+  } with s with record[ pending_admin = Some(new_admin) ]
 
 function approve_admin(
-  var s                 : fa2_storage)
-                        : fa2_storage is
+  var s                 : fa2_storage_t)
+                        : fa2_storage_t is
   block {
-    const pending_admin = unwrap(s.pending_admin, "no-admin-candidate");
-    require(Tezos.sender = pending_admin or Tezos.sender = s.admin, Errors.FA2.notAdmin);
+    const pending_admin = Utils.unwrap(s.pending_admin, Errors.WrappedTezos.empty_candidate);
+    Utils.require(Tezos.sender = pending_admin or Tezos.sender = s.admin, Errors.FA2.not_admin);
     s.admin := Tezos.sender;
     s.pending_admin := (None : option(address));
   } with s
