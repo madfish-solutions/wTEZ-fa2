@@ -157,6 +157,23 @@ describe("wTEZ FA2 single-asset tests", () => {
       ).toStrictEqual(new BigNumber(1).shiftedBy(6).toNumber());
     });
 
+    it("get_baking_rewards call EP fails if not admin or candidate", async () =>
+      await failCase(
+        "eve",
+        async () => {
+          await wTEZuser.updateStorage();
+          const contractTezosBalance = await Tezos.rpc.getBalance(
+            wTEZ.contract.address
+          );
+          const contractTS = await wTEZ.storage.token_info.get(0);
+          expect(
+            new BigNumber(contractTezosBalance).toNumber()
+          ).toBeGreaterThan(new BigNumber(contractTS).toNumber());
+          await wTEZuser.get_baking_rewards(accounts.eve.pkh);
+        },
+        "FA2_NOT_ADMIN"
+      ));
+
     it("admin gets the rewards", async () => {
       await wTEZ.updateStorage();
       const eveTezosBalance = await Tezos.rpc.getBalance(accounts.eve.pkh);
