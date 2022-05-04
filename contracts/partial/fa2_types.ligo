@@ -51,12 +51,7 @@ type token_meta_info_t  is [@layout:comb] record [
   token_info              : map(string, bytes);
 ]
 
-type upd_meta_param_t   is token_meta_info_t
-
-type account_t          is [@layout:comb] record [
-  updated                 : timestamp;
-  operators               : set(address);
-]
+type upd_meta_param_t   is map(string, bytes);
 
 type token_info_t       is [@layout:comb] record [
   total_supply            : nat;
@@ -64,7 +59,7 @@ type token_info_t       is [@layout:comb] record [
 
 type fa2_storage_t      is [@layout:comb] record [
   ledger                  : big_map(address, nat);
-  account_info            : big_map(address, account_t);
+  operators               : big_map(address, set(address));
   token_info              : big_map(token_id_t, token_info_t);
   metadata                : big_map(string, bytes);
   token_metadata          : big_map(token_id_t, token_metadata_info_t);
@@ -89,9 +84,8 @@ type fa2_action_t       is
 | Update_metadata         of upd_meta_param_t
 | Set_admin               of address
 | Approve_admin           of unit
-| Create_token            of unit
 | Mint                    of address
 | Burn                    of burn_param_t
-| Get_baking_rewards      of address
+| Claim_baking_rewards      of address
 | Set_delegate            of option(key_hash)
 | Default                 of unit // for receive baking rewards

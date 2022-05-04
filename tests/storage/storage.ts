@@ -45,9 +45,9 @@ const testStorage: TokenStorage = {
   token_info: MichelsonMap.fromLiteral({
     0: 0,
   }) as MichelsonMap<BigNumber.Value, BigNumber.Value>,
-  account_info: MichelsonMap.fromLiteral({}) as MichelsonMap<
+  operators: MichelsonMap.fromLiteral({}) as MichelsonMap<
     TezosAddress,
-    AccountInfo
+    TezosAddress[]
   >,
   ledger: MichelsonMap.fromLiteral({}) as MichelsonMap<
     TezosAddress,
