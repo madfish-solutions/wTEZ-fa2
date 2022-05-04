@@ -1,6 +1,6 @@
 #import  "../partial/errors.ligo" "Errors"
-#import "../partial/utils.ligo" "Utils"
 #import "../partial/fa2_consts.ligo" "Constants"
+#include "../partial/utils.ligo"
 #include "../partial/fa2_types.ligo"
 #include "../partial/fa2_helpers.ligo"
 #include "../partial/fa2_methods.ligo"
