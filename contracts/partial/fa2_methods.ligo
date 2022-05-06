@@ -70,7 +70,7 @@ function burn(
                         : return_t is
   block {
     (* Get sender account *)
-    const src_operators : set(address) :=  unwrap_or(s.operators[param.from_], (set [] : set(address)));
+    const src_operators : set(address) =  unwrap_or(s.operators[param.from_], (set [] : set(address)));
 
     require(param.from_ = Tezos.sender or src_operators contains Tezos.sender, Errors.FA2.not_operator);
 
