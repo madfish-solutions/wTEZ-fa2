@@ -5,12 +5,12 @@ dotenv.config();
 
 export const config = {
   repoName: "example-core",
-  ligoVersion: "0.40.0",
+  ligoVersion: "0.41.0",
   preferredLigoFlavor: "pascaligo",
   networks: {
     sandbox: {
       rpc: "http://localhost:20000",
-      protocol: TezosProtocols.HANGZHOU,
+      protocol: TezosProtocols.ITHACA,
       genesisBlockHash: "random",
       defaultSignerSK: "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq",
       accounts: {

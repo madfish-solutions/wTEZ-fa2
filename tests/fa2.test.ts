@@ -60,49 +60,23 @@ describe("wTEZ FA2 single-asset tests", () => {
             ).toString("hex"),
           }) as MichelsonMap<string, BytesString>
         ),
-      "Single-asset-FA2"
+      "FA2_SINGLE_ASSET"
     ));
 
   describe("testing Mint entrypoint", () => {
-    it("mint by send tezos to contract", async () => {
-      const bobsTezosBalance = await bobsTezos.rpc.getBalance(accounts.bob.pkh);
-      const op = await bobsTezos.wallet
-        .transfer({
-          to: wTEZuser.contract.address,
-          amount: 1,
-        })
-        .send();
-      await confirmOperation(bobsTezos, op.opHash);
-      await wTEZuser.updateStorage();
-      const bobswTEZbalance = await wTEZuser.storage.ledger.get(
-        accounts.bob.pkh
-      );
-      expect(
-        bobsTezosBalance
-          .minus(await bobsTezos.rpc.getBalance(accounts.bob.pkh))
-          .toNumber()
-      ).toBeGreaterThanOrEqual(1000000);
-      expect(bobswTEZbalance.toString()).toBe("1000000");
-    });
-
     it("mint by call EP to contract", async function () {
       const bobsTezosBalance = await bobsTezos.rpc.getBalance(accounts.bob.pkh);
-      const bobswTEZbalance = await wTEZuser.storage.ledger.get(
-        accounts.bob.pkh
-      );
-      await wTEZuser.mint(1000000, accounts.bob.pkh);
+      await wTEZuser.mint(2000000, accounts.bob.pkh);
       await wTEZuser.updateStorage();
-      const bobswTEZbalance_new = await wTEZuser.storage.ledger.get(
+      const bobswTEZbalance = await wTEZuser.storage.ledger.get(
         accounts.bob.pkh
       );
       expect(
         bobsTezosBalance
           .minus(await bobsTezos.rpc.getBalance(accounts.bob.pkh))
           .toNumber()
-      ).toBeGreaterThanOrEqual(1000000);
-      expect(
-        new BigNumber(bobswTEZbalance_new).minus(bobswTEZbalance).toNumber()
-      ).toBe(1000000);
+      ).toBeGreaterThanOrEqual(2000000);
+      expect(new BigNumber(bobswTEZbalance).toNumber()).toBe(2000000);
     });
   });
 
@@ -148,6 +122,83 @@ describe("wTEZ FA2 single-asset tests", () => {
       await wTEZ.set_delegate(accounts.alice.pkh);
       await wTEZ.updateStorage();
       expect(wTEZ.storage.current_delegate).toStrictEqual(accounts.alice.pkh);
+    });
+  });
+
+  describe("testing get rewards", () => {
+    it("send tezos to contract", async () => {
+      await wTEZuser.updateStorage();
+      const contractTezosBalance = await bobsTezos.rpc.getBalance(
+        wTEZuser.contract.address
+      );
+      const contractTS = await wTEZuser.storage.token_info.get(0);
+      expect(new BigNumber(contractTezosBalance).toNumber()).toStrictEqual(
+        new BigNumber(contractTS).toNumber()
+      );
+      const op = await bobsTezos.wallet
+        .transfer({
+          to: wTEZuser.contract.address,
+          amount: 1,
+        })
+        .send();
+      await confirmOperation(bobsTezos, op.opHash);
+      await wTEZuser.updateStorage();
+      const contractTezosBalanceAfter = await bobsTezos.rpc.getBalance(
+        wTEZuser.contract.address
+      );
+      const contractTSAfter = await wTEZuser.storage.token_info.get(0);
+      expect(new BigNumber(contractTS).toNumber()).toStrictEqual(
+        new BigNumber(contractTSAfter).toNumber()
+      );
+      expect(
+        new BigNumber(contractTezosBalanceAfter)
+          .minus(contractTezosBalance)
+          .toNumber()
+      ).toStrictEqual(new BigNumber(1).shiftedBy(6).toNumber());
+    });
+
+    it("get_baking_rewards call EP fails if not admin or candidate", async () =>
+      await failCase(
+        "eve",
+        async () => {
+          await wTEZuser.updateStorage();
+          const contractTezosBalance = await Tezos.rpc.getBalance(
+            wTEZ.contract.address
+          );
+          const contractTS = await wTEZ.storage.token_info.get(0);
+          expect(
+            new BigNumber(contractTezosBalance).toNumber()
+          ).toBeGreaterThan(new BigNumber(contractTS).toNumber());
+          await wTEZuser.get_baking_rewards(accounts.eve.pkh);
+        },
+        "FA2_NOT_ADMIN"
+      ));
+
+    it("admin gets the rewards", async () => {
+      await wTEZ.updateStorage();
+      const eveTezosBalance = await Tezos.rpc.getBalance(accounts.eve.pkh);
+      const contractTezosBalance = await Tezos.rpc.getBalance(
+        wTEZ.contract.address
+      );
+      const contractTS = await wTEZ.storage.token_info.get(0);
+      expect(new BigNumber(contractTezosBalance).toNumber()).toBeGreaterThan(
+        new BigNumber(contractTS).toNumber()
+      );
+      await wTEZ.get_baking_rewards(accounts.eve.pkh);
+      await wTEZ.updateStorage();
+      const contractTezosBalanceAfter = await Tezos.rpc.getBalance(
+        wTEZ.contract.address
+      );
+      const contractTSAfter = await wTEZ.storage.token_info.get(0);
+      const eveTezosBalanceAfter = await Tezos.rpc.getBalance(accounts.eve.pkh);
+      expect(new BigNumber(contractTezosBalanceAfter).toNumber()).toStrictEqual(
+        new BigNumber(contractTSAfter).toNumber()
+      );
+      expect(
+        new BigNumber(eveTezosBalanceAfter).minus(eveTezosBalance).toNumber()
+      ).toStrictEqual(
+        new BigNumber(contractTezosBalance).minus(contractTS).toNumber()
+      );
     });
   });
 

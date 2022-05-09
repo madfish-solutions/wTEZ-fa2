@@ -21,7 +21,7 @@ export class KeyHashString extends String {
 
 export declare type AccountInfo = {
   updated: Date;
-  permits: TezosAddress[];
+  operators: TezosAddress[];
 };
 
 export declare type TokenMetadata = {
@@ -37,6 +37,6 @@ export declare type TokenStorage = {
   token_metadata: MichelsonMap<BigNumber.Value, TokenMetadata>;
   admin: TezosAddress;
   pending_admin: TezosAddress | null;
-  last_token_id: BigNumber.Value;
+  token_count: BigNumber.Value;
   current_delegate: KeyHashString | null;
 };

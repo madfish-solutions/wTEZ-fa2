@@ -24,7 +24,7 @@ const metadata = MichelsonMap.fromLiteral({
 const testStorage: TokenStorage = {
   admin: accounts.alice.pkh as TezosAddress,
   pending_admin: null as TezosAddress,
-  last_token_id: 1,
+  token_count: 1,
   token_metadata: MichelsonMap.fromLiteral({
     0: {
       token_id: 0,

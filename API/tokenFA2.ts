@@ -4,7 +4,11 @@ import { TransactionOperation } from "@taquito/taquito/dist/types/operations/tra
 const defaultTokenId = 0;
 import BigNumber from "bignumber.js";
 import { KeyHashString, TokenMetadata, TokenStorage } from "./types";
-import { BytesString, prepareProviderOptions, TezosAddress } from "../utils/helpers";
+import {
+  BytesString,
+  prepareProviderOptions,
+  TezosAddress,
+} from "../utils/helpers";
 import { confirmOperation } from "../utils/confirmation";
 
 export class SingleTokenFA2 {
@@ -82,10 +86,7 @@ export class SingleTokenFA2 {
     receiver: TezosAddress
   ): Promise<TransactionOperation> {
     const operation = await this.contract.methodsObject
-      .mint({
-        amount,
-        receiver,
-      })
+      .mint(receiver)
       .send({ amount: new BigNumber(amount).shiftedBy(-6).toNumber() });
     await confirmOperation(this.Tezos, operation.hash);
     return operation;
@@ -111,6 +112,14 @@ export class SingleTokenFA2 {
     delegate: KeyHashString | null
   ): Promise<TransactionOperation> {
     const operation = await this.contract.methods.set_delegate(delegate).send();
+    await confirmOperation(this.Tezos, operation.hash);
+    return operation;
+  }
+
+  async get_baking_rewards(receiver: TezosAddress) {
+    const operation = await this.contract.methods
+      .get_baking_rewards(receiver)
+      .send();
     await confirmOperation(this.Tezos, operation.hash);
     return operation;
   }
