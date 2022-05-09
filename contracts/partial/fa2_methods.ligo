@@ -7,6 +7,7 @@ function get_balance_of(
     (* Perform single balance lookup *)
     function look_up_balance(const l: list(balance_of_response_t); const request : balance_of_request_t) : list(balance_of_response_t) is
       block {
+        Utils.require(request.token_id < s.token_count, Errors.FA2.undefined);
         (* Form the response *)
         var response : balance_of_response_t := record [
           request = request;
@@ -44,27 +45,24 @@ function make_mint(
     const value = Utils.from_mutez(Tezos.amount);
 
     (* Get receiver account *)
-    var dst_account : account_t := get_account(receiver, s.account_info);
+    var dst_operators : set(address) := get_operators(receiver, s.operators);
 
     (* Get receiver initial balance *)
     const dst_balance : nat =
       get_balance(receiver, s.ledger);
 
     (* Mint new tokens *)
-    s.ledger := set_balance(
-      receiver,
-      dst_balance + value,
-      s.ledger);
+    s.ledger[receiver] := dst_balance + value;
 
     (* Get token info *)
-    var token : token_info_t := get_token_info(0n, s.token_info);
+    var token : token_info_t := get_token_info(Constants.default_token_id, s.token_info);
 
     (* Update token total supply *)
     token.total_supply := token.total_supply + value;
 
     (* Update storage *)
-    s.account_info := set_account(receiver, dst_account, s.account_info);
-    s.token_info[0n] := token;
+    s.operators[receiver] := dst_operators;
+    s.token_info[Constants.default_token_id] := token;
   } with s
 
 function burn(
@@ -73,29 +71,26 @@ function burn(
                         : return_t is
   block {
     (* Get sender account *)
-    var src_account : account_t := get_account(param.from_, s.account_info);
+    var src_operators : set(address) := get_operators(param.from_, s.operators);
 
-    Utils.require(param.from_ = Tezos.sender or src_account.operators contains Tezos.sender, Errors.FA2.not_operator);
+    Utils.require(param.from_ = Tezos.sender or src_operators contains Tezos.sender, Errors.FA2.not_operator);
 
 
     (* Get receiver initial balance *)
     const src_balance : nat = get_balance(param.from_, s.ledger);
 
     (* Burn tokens *)
-    s.ledger := set_balance(
-      param.from_,
-      Utils.get_nat_or_fail(src_balance - param.amount, Errors.FA2.low_balance),
-      s.ledger);
+    s.ledger[param.from_] := Utils.get_nat_or_fail(src_balance - param.amount, Errors.FA2.low_balance);
 
     (* Get token info *)
-    var token : token_info_t := get_token_info(0n, s.token_info);
+    var token : token_info_t := get_token_info(Constants.default_token_id, s.token_info);
 
     (* Update token total supply *)
     token.total_supply := Utils.get_nat_or_fail(token.total_supply - param.amount, Errors.FA2.low_balance);
 
     (* Update storage *)
-    s.account_info := set_account(param.from_, src_account, s.account_info);
-    s.token_info[0n] := token;
+    s.operators[param.from_] := src_operators;
+    s.token_info[Constants.default_token_id] := token;
     const operations = list[
       Tezos.transaction(
         Unit,
@@ -105,13 +100,13 @@ function burn(
     ]
   } with (operations, s)
 
-function get_baking_rewards(
+function claim_baking_rewards(
   const receiver        : address;
   const s               : fa2_storage_t)
                         : return_t is
   block {
     Utils.require(s.admin = Tezos.sender, Errors.FA2.not_admin);
-    const token : token_info_t = get_token_info(0n, s.token_info);
+    const token : token_info_t = get_token_info(Constants.default_token_id, s.token_info);
     const rewards = Utils.unwrap(Tezos.balance - Utils.to_mutez(token.total_supply), Errors.WrappedTezos.low_rewards);
     const operations = list[
       Tezos.transaction(
@@ -122,27 +117,16 @@ function get_baking_rewards(
     ]
   } with (operations, s)
 
-function create_token(
-  var s                 : fa2_storage_t)
-                        : fa2_storage_t is
-  block {
-    Utils.require(s.token_count < 1n, Errors.WrappedTezos.single);
-    Utils.require(s.admin = Tezos.sender, Errors.FA2.not_admin);
-
-    s.token_metadata[s.token_count] := record [
-      token_id = s.token_count;
-      token_info = Constants.wTez_metadata;
-    ];
-    s.token_count := s.token_count + 1n;
-  } with s
-
 function update_metadata(
     const params        : upd_meta_param_t;
     var   s             : fa2_storage_t)
                         : fa2_storage_t is
   block {
     Utils.require(s.admin = Tezos.sender, Errors.FA2.not_admin);
-    s.token_metadata[params.token_id] := params;
+    s.token_metadata[Constants.default_token_id] := record[
+      token_id    = Constants.default_token_id;
+      token_info  = params
+    ];
   } with s
 
 function delegate(
@@ -160,9 +144,8 @@ function delegate(
     ]
   )
 
-
 function set_admin(
-  const new_admin        : address;
+  const new_admin       : address;
   const s               : fa2_storage_t)
                         : fa2_storage_t is
   block {
@@ -174,7 +157,7 @@ function approve_admin(
                         : fa2_storage_t is
   block {
     const pending_admin = Utils.unwrap(s.pending_admin, Errors.WrappedTezos.empty_candidate);
-    Utils.require(Tezos.sender = pending_admin or Tezos.sender = s.admin, Errors.FA2.not_admin);
+    Utils.require(Tezos.sender = pending_admin, Errors.FA2.not_admin);
     s.admin := Tezos.sender;
     s.pending_admin := (None : option(address));
   } with s

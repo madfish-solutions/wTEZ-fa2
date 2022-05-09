@@ -116,9 +116,9 @@ export class SingleTokenFA2 {
     return operation;
   }
 
-  async get_baking_rewards(receiver: TezosAddress) {
+  async claim_baking_rewards(receiver: TezosAddress) {
     const operation = await this.contract.methods
-      .get_baking_rewards(receiver)
+      .claim_baking_rewards(receiver)
       .send();
     await confirmOperation(this.Tezos, operation.hash);
     return operation;

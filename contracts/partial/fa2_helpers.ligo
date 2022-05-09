@@ -1,48 +1,19 @@
 (* Helper function to get account *)
-function get_account(
+[@inline] function get_operators(
   const user            : address;
-  const account_info    : big_map(address, account_t))
-                        : account_t is
-  Utils.unwrap_or(account_info[user], record [
-    updated         = Tezos.now;
-    operators         = (set [] : set(address));
-  ]);
-
-function set_account(
-  const user            : address;
-  const account         : account_t;
-  const account_info    : big_map(address, account_t))
-                        : big_map(address, account_t) is
-  Big_map.update(
-    user,
-    Some(
-      account with record [
-        updated         = Tezos.now
-      ]
-    ),
-    account_info
-  )
+  const operators    : big_map(address, set(address)))
+                        : set(address) is
+  Utils.unwrap_or(operators[user], (set [] : set(address)));
 
 (* Helper function to get acount balance by token *)
-function get_balance(
+[@inline] function get_balance(
   const user            : address;
   const ledger          : big_map(address, nat))
                         : nat is
   Utils.unwrap_or(ledger[user], 0n)
 
-function set_balance(
-  const user            : address;
-  const value           : nat;
-  const ledger          : big_map(address, nat))
-                        : big_map(address, nat) is
-  Big_map.update(
-    user,
-    Some(value),
-    ledger
-  )
-
 (* Helper function to get token info *)
-function get_token_info(
+[@inline] function get_token_info(
   const token_id        : token_id_t;
   const token_info      : big_map(token_id_t, token_info_t))
                         : token_info_t is
@@ -60,10 +31,10 @@ function iterate_transfer(
     function make_transfer(var s : fa2_storage_t; const transfer_dst : transfer_destination_t) : fa2_storage_t is
       block {
         (* Create or get source account *)
-        var src_account : account_t := get_account(params.from_, s.account_info);
+        var src_operators : set(address) := get_operators(params.from_, s.operators);
 
         (* Check permissions *)
-        Utils.require(params.from_ = Tezos.sender or src_account.operators contains Tezos.sender, Errors.FA2.not_operator);
+        Utils.require(params.from_ = Tezos.sender or src_operators contains Tezos.sender, Errors.FA2.not_operator);
 
 
         // (* Token id check *)
@@ -75,32 +46,24 @@ function iterate_transfer(
 
         (* Balance check *)
         (* Update source balance *)
-        s.ledger := set_balance(
-          params.from_,
-          Utils.get_nat_or_fail(
-            src_balance - transfer_dst.amount,
-            Errors.FA2.low_balance
-          ),
-          s.ledger
+        s.ledger[params.from_] := Utils.get_nat_or_fail(
+          src_balance - transfer_dst.amount,
+          Errors.FA2.low_balance
         );
 
         (* Update storage *)
-        s.account_info := set_account(params.from_, src_account, s.account_info);
+        s.operators[params.from_] := src_operators;
 
         (* Create or get destination account *)
-        var dst_account : account_t := get_account(transfer_dst.to_, s.account_info);
+        var dst_operators : set(address) := get_operators(transfer_dst.to_, s.operators);
 
         (* Get receiver balance *)
         const dst_balance : nat = get_balance(transfer_dst.to_, s.ledger);
 
         (* Update destination balance *)
-        s.ledger := set_balance(
-          transfer_dst.to_,
-          dst_balance + transfer_dst.amount,
-          s.ledger
-        );
+        s.ledger[transfer_dst.to_] := dst_balance + transfer_dst.amount;
         (* Update storage *)
-        s.account_info := set_account(transfer_dst.to_, dst_account, s.account_info);
+        s.operators[transfer_dst.to_] := dst_operators;
     } with s
 } with List.fold(make_transfer, params.txs, s)
 
@@ -118,9 +81,9 @@ function iterate_update_operators(
     Utils.require(param.token_id < s.token_count, Errors.FA2.undefined);
     Utils.require(Tezos.sender = param.owner, Errors.FA2.not_owner);
 
-		var src_account : account_t := get_account(param.owner, s.account_info);
+		var src_operators : set(address) := get_operators(param.owner, s.operators);
 
-    src_account.operators := Set.update(param.operator, should_add, src_account.operators);
+    src_operators := Set.update(param.operator, should_add, src_operators);
 
-    s.account_info := set_account(param.owner, src_account, s.account_info);
+    s.operators[param.owner] := src_operators;
   } with s

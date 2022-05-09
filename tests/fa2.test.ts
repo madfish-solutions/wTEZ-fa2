@@ -43,26 +43,6 @@ describe("wTEZ FA2 single-asset tests", () => {
     }
   });
 
-  it("create_token call EP fails (already created)", async () =>
-    await failCase(
-      "alice",
-      async () =>
-        await wTEZuser.create_token(
-          MichelsonMap.fromLiteral({
-            symbol: Buffer.from("wTEZ").toString("hex"),
-            name: Buffer.from("Wrapped Tezos FA2 token").toString("hex"),
-            decimals: Buffer.from("6").toString("hex"),
-            is_transferable: Buffer.from("true").toString("hex"),
-            is_boolean_amount: Buffer.from("false").toString("hex"),
-            should_prefer_symbol: Buffer.from("false").toString("hex"),
-            thumbnailUri: Buffer.from(
-              "https://www.vhv.rs/dpng/d/523-5236354_tezos-pre-launch-xtz-icon-tezos-logo-hd.png"
-            ).toString("hex"),
-          }) as MichelsonMap<string, BytesString>
-        ),
-      "FA2_SINGLE_ASSET"
-    ));
-
   describe("testing Mint entrypoint", () => {
     it("mint by call EP to contract", async function () {
       const bobsTezosBalance = await bobsTezos.rpc.getBalance(accounts.bob.pkh);
@@ -157,7 +137,7 @@ describe("wTEZ FA2 single-asset tests", () => {
       ).toStrictEqual(new BigNumber(1).shiftedBy(6).toNumber());
     });
 
-    it("get_baking_rewards call EP fails if not admin or candidate", async () =>
+    it("claim_baking_rewards call EP fails if not admin or candidate", async () =>
       await failCase(
         "eve",
         async () => {
@@ -169,7 +149,7 @@ describe("wTEZ FA2 single-asset tests", () => {
           expect(
             new BigNumber(contractTezosBalance).toNumber()
           ).toBeGreaterThan(new BigNumber(contractTS).toNumber());
-          await wTEZuser.get_baking_rewards(accounts.eve.pkh);
+          await wTEZuser.claim_baking_rewards(accounts.eve.pkh);
         },
         "FA2_NOT_ADMIN"
       ));
@@ -184,7 +164,7 @@ describe("wTEZ FA2 single-asset tests", () => {
       expect(new BigNumber(contractTezosBalance).toNumber()).toBeGreaterThan(
         new BigNumber(contractTS).toNumber()
       );
-      await wTEZ.get_baking_rewards(accounts.eve.pkh);
+      await wTEZ.claim_baking_rewards(accounts.eve.pkh);
       await wTEZ.updateStorage();
       const contractTezosBalanceAfter = await Tezos.rpc.getBalance(
         wTEZ.contract.address

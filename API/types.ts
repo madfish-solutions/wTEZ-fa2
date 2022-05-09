@@ -31,7 +31,7 @@ export declare type TokenMetadata = {
 
 export declare type TokenStorage = {
   ledger: MichelsonMap<TezosAddress, BigNumber.Value>;
-  account_info: MichelsonMap<TezosAddress, AccountInfo>;
+  operators: MichelsonMap<TezosAddress, TezosAddress[]>;
   token_info: MichelsonMap<BigNumber.Value, BigNumber.Value>;
   metadata: MichelsonMap<string, BytesString>;
   token_metadata: MichelsonMap<BigNumber.Value, TokenMetadata>;
