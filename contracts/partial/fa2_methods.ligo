@@ -44,9 +44,6 @@ function make_mint(
     require(Tezos.amount > 0mutez, Errors.WrappedTezos.zero_mint);
     const value = from_mutez(Tezos.amount);
 
-    (* Get receiver account *)
-    var dst_operators : set(address) :=  unwrap_or(s.operators[receiver], (set [] : set(address)));
-
     (* Get receiver initial balance *)
     const dst_balance : nat = unwrap_or(s.ledger[receiver], 0n);
 
@@ -64,7 +61,6 @@ function make_mint(
     token.total_supply := token.total_supply + value;
 
     (* Update storage *)
-    s.operators[receiver] := dst_operators;
     s.token_info[Constants.default_token_id] := token;
   } with s
 
@@ -74,7 +70,7 @@ function burn(
                         : return_t is
   block {
     (* Get sender account *)
-    var src_operators : set(address) :=  unwrap_or(s.operators[param.from_], (set [] : set(address)));
+    const src_operators : set(address) =  unwrap_or(s.operators[param.from_], (set [] : set(address)));
 
     require(param.from_ = Tezos.sender or src_operators contains Tezos.sender, Errors.FA2.not_operator);
 
@@ -96,7 +92,6 @@ function burn(
     token.total_supply := get_nat_or_fail(token.total_supply - param.amount, Errors.FA2.low_balance);
 
     (* Update storage *)
-    s.operators[param.from_] := src_operators;
     s.token_info[Constants.default_token_id] := token;
     const operations = list[
       Tezos.transaction(
