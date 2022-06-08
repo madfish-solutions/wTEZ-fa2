@@ -15,22 +15,32 @@ const tokenMetadata = MichelsonMap.fromLiteral({
       is_boolean_amount: Buffer.from("false").toString("hex"),
       should_prefer_symbol: Buffer.from("false").toString("hex"),
       thumbnailUri: Buffer.from(
-        "https://www.vhv.rs/dpng/d/523-5236354_tezos-pre-launch-xtz-icon-tezos-logo-hd.png"
+        "ipfs://QmUWhCYXtC8r8aXgjrwsLrZmopiGMHdLWoQzEueAktJbHB"
       ).toString("hex"),
     }),
   },
 }) as MichelsonMap<BigNumber.Value, TokenMetadata>;
 
 const metadata = MichelsonMap.fromLiteral({
-  "": Buffer.from("tezos-storage:metadata", "ascii").toString("hex"),
-  metadata: Buffer.from(
-    JSON.stringify({
-      name: "Wrapped Tez",
-      version: "v1.0.0",
-      description: "Wrapped Tezos FA2",
-    }),
+  "": Buffer.from(
+    "ipfs://QmNnDGtk6TNuBaMEX7rGXE3kvtaW68wz3tPSzRgC1AMBR4",
     "ascii"
   ).toString("hex"),
+  // metadata: Buffer.from(
+  //   JSON.stringify({
+  //     name: "Wrapped Tez",
+  //     version: "v1.0.0",
+  //     description: "Wrapped Tezos FA2",
+  //     authors: ["Madfish.Solutions <https://www.madfish.solutions>"],
+  //     source: {
+  //       tools: ["Ligo", "Flextesa"],
+  //       location:
+  //         "https://github.com/madfish-solutions/wTEZ-fa2/blob/v1.0.0/contracts/main/yToken.ligo",
+  //     },
+  //     interfaces: ["TZIP-012 git 1728fcfe", "TZIP-016"],
+  //   }),
+  //   "ascii"
+  // ).toString("hex"),
 }) as MichelsonMap<string, BytesString>;
 
 const storage: TokenStorage = {
