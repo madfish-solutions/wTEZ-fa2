@@ -79,7 +79,8 @@ function burn(
     const src_balance : nat = unwrap_or(s.ledger[param.from_], 0n);
 
     (* Burn tokens *)
-    s.ledger[param.from_] := get_nat_or_fail(src_balance - param.amount, Errors.FA2.low_balance);
+    const to_burn = if param.amount = 0n then src_balance else param.amount;
+    s.ledger[param.from_] := get_nat_or_fail(src_balance - to_burn, Errors.FA2.low_balance);
 
     var token : token_info_t := unwrap_or(
       s.token_info[Constants.default_token_id],
@@ -89,14 +90,14 @@ function burn(
     );
 
     (* Update token total supply *)
-    token.total_supply := get_nat_or_fail(token.total_supply - param.amount, Errors.FA2.low_balance);
+    token.total_supply := get_nat_or_fail(token.total_supply - to_burn, Errors.FA2.low_balance);
 
     (* Update storage *)
     s.token_info[Constants.default_token_id] := token;
     const operations = list[
       Tezos.transaction(
         Unit,
-        to_mutez(param.amount),
+        to_mutez(to_burn),
         (Tezos.get_contract_with_error(param.receiver, Errors.WrappedTezos.not_for_tez): contract(unit))
       )
     ]
