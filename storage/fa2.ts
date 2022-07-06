@@ -23,7 +23,7 @@ const tokenMetadata = MichelsonMap.fromLiteral({
 
 const metadata = MichelsonMap.fromLiteral({
   "": Buffer.from(
-    "ipfs://QmdL4aadMxvdce2GkHVodbzMSMzk3nBcxi9Z4FF57AWcVd",
+    "ipfs://QmNX6yLabTCVWnNxZ4t7eU84Ju6sQDCWjiA2T7aMcwB4v6",
     "ascii"
   ).toString("hex"),
   // metadata: Buffer.from(
@@ -35,7 +35,7 @@ const metadata = MichelsonMap.fromLiteral({
   //     source: {
   //       tools: ["Ligo", "Flextesa"],
   //       location:
-  //         "https://github.com/madfish-solutions/wTEZ-fa2/blob/v1.0.1/contracts/main/yToken.ligo",
+  //         "https://github.com/madfish-solutions/wTEZ-fa2/blob/v1.0.2/contracts/main/fa2.ligo",
   //     },
   //     interfaces: ["TZIP-012 git 1728fcfe", "TZIP-016"],
   //   }),
