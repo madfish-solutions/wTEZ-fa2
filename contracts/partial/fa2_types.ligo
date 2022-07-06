@@ -77,15 +77,18 @@ type burn_param_t       is [@layout:comb] record [
     amount                : nat;
   ]
 
-type fa2_action_t       is
+type non_tezos_action_t is
 | Transfer                of transfer_params_t
 | Balance_of              of balance_params_t
 | Update_operators        of update_operator_params_t
 | Update_metadata         of upd_meta_param_t
 | Set_admin               of address
 | Approve_admin           of unit
-| Mint                    of address
 | Burn                    of burn_param_t
-| Claim_baking_rewards      of address
+| Claim_baking_rewards    of address
 | Set_delegate            of option(key_hash)
+
+type fa2_action_t       is
+| Non_tez_use             of non_tezos_action_t
+| Mint                    of address
 | Default                 of unit // for receive baking rewards
