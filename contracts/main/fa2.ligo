@@ -11,15 +11,7 @@ function main(
   const s               : fa2_storage_t)
                         : return_t is
   case action of [
-  | Set_admin(params)           -> (Constants.no_operations, set_admin(params, s))
-  | Approve_admin               -> (Constants.no_operations, approve_admin(s))
-  | Transfer(params)            -> (Constants.no_operations, transfer(s, params))
-  | Update_operators(params)    -> (Constants.no_operations, update_operators(s, params))
-  | Balance_of(params)          -> (get_balance_of(params, s), s)
-  | Update_metadata(params)     -> (Constants.no_operations, update_metadata(params, s))
+  | Non_tez_use(params)         -> non_tz_main(params, s)
   | Mint(params)                -> (Constants.no_operations, make_mint(params, s))
-  | Burn(params)                -> burn(params, s)
-  | Set_delegate(params)        -> delegate(params, s)
-  | Claim_baking_rewards(params)-> claim_baking_rewards(params, s)
   | Default                     -> (Constants.no_operations, s)
   ]

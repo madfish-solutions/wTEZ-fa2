@@ -4,6 +4,11 @@
                         : unit is
   assert_with_error(param, error)
 
+[@inline] function non_tezos_call(
+  const _               : unit)
+                        : unit is
+  require(Tezos.amount = 0mutez, Errors.WrappedTezos.non_tez)
+
 [@inline] function get_nat_or_fail(
   const value           : int;
   const error           : string)

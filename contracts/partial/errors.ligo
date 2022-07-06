@@ -13,4 +13,5 @@ module WrappedTezos is {
   const not_for_tez     : string = "NOT_TEZOS_RECEIVER";
   const zero_mint       : string = "FA2_ZERO_MINT";
   const low_rewards     : string = "LOW_TEZOS_REWARD";
+  const non_tez         : string = "NON_TEZOS_CALL";
 }

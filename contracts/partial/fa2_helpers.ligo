@@ -4,42 +4,20 @@ function iterate_transfer(
   const params          : transfer_param_t)
                         : fa2_storage_t is
   block {
-    (* Perform single transfer *)
+    const src_operators : set(address) = unwrap_or(s.operators[params.from_], (set [] : set(address)));
+    require(params.from_ = Tezos.sender or src_operators contains Tezos.sender, Errors.FA2.not_operator);
     function make_transfer(var s : fa2_storage_t; const transfer_dst : transfer_destination_t) : fa2_storage_t is
       block {
-        (* Create or get source account *)
-        var src_operators : set(address) := unwrap_or(s.operators[params.from_], (set [] : set(address)));
-
-        (* Check permissions *)
-        require(params.from_ = Tezos.sender or src_operators contains Tezos.sender, Errors.FA2.not_operator);
-
-
         // (* Token id check *)
         require(transfer_dst.token_id < s.token_count, Errors.FA2.undefined);
 
-
-        (* Get source balance *)
-        const src_balance : nat = unwrap_or(s.ledger[params.from_], 0n);
-
-        (* Balance check *)
         (* Update source balance *)
         s.ledger[params.from_] := get_nat_or_fail(
-          src_balance - transfer_dst.amount,
+          unwrap_or(s.ledger[params.from_], 0n) - transfer_dst.amount,
           Errors.FA2.low_balance
         );
-
-        (* Update storage *)
-        s.operators[params.from_] := src_operators;
-
-        (* Create or get destination account *)
-        var dst_operators : set(address) := unwrap_or(s.operators[transfer_dst.to_], (set [] : set(address)));
-
-        (* Get receiver balance *)
-        const dst_balance : nat = unwrap_or(s.ledger[transfer_dst.to_], 0n);
         (* Update destination balance *)
-        s.ledger[transfer_dst.to_] := dst_balance + transfer_dst.amount;
-        (* Update storage *)
-        s.operators[transfer_dst.to_] := dst_operators;
+        s.ledger[transfer_dst.to_] := unwrap_or(s.ledger[transfer_dst.to_], 0n) + transfer_dst.amount;
     } with s
 } with List.fold(make_transfer, params.txs, s)
 
