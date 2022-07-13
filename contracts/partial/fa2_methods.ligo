@@ -69,38 +69,37 @@ function burn(
   var s                 : fa2_storage_t)
                         : return_t is
   block {
-    (* Get sender account *)
-    const src_operators : set(address) =  unwrap_or(s.operators[param.from_], (set [] : set(address)));
-
-    require(param.from_ = Tezos.sender or src_operators contains Tezos.sender, Errors.FA2.not_operator);
-
-
-    (* Get receiver initial balance *)
+    (* Get spender initial balance *)
     const src_balance : nat = unwrap_or(s.ledger[param.from_], 0n);
-
-    (* Burn tokens *)
+    (* Burn tokens amount *)
     const to_burn = if param.amount = 0n then src_balance else param.amount;
-    s.ledger[param.from_] := get_nat_or_fail(src_balance - to_burn, Errors.FA2.low_balance);
+    var operations := Constants.no_operations;
+    if to_burn > 0n
+    then {
+      (* Get sender account *)
+      const src_operators : set(address) =  unwrap_or(s.operators[param.from_], (set [] : set(address)));
+      require(param.from_ = Tezos.sender or src_operators contains Tezos.sender, Errors.FA2.not_operator);
 
-    var token : token_info_t := unwrap_or(
-      s.token_info[Constants.default_token_id],
-      record [
-        total_supply = 0n;
-      ]
-    );
-
-    (* Update token total supply *)
-    token.total_supply := get_nat_or_fail(token.total_supply - to_burn, Errors.FA2.low_balance);
-
-    (* Update storage *)
-    s.token_info[Constants.default_token_id] := token;
-    const operations = list[
-      Tezos.transaction(
-        Unit,
-        to_mutez(to_burn),
-        (Tezos.get_contract_with_error(param.receiver, Errors.WrappedTezos.not_for_tez): contract(unit))
-      )
-    ]
+      s.ledger[param.from_] := get_nat_or_fail(src_balance - to_burn, Errors.FA2.low_balance);
+      var token : token_info_t := unwrap_or(
+        s.token_info[Constants.default_token_id],
+        record [
+          total_supply = 0n;
+        ]
+      );
+      (* Update token total supply *)
+      token.total_supply := get_nat_or_fail(token.total_supply - to_burn, Errors.FA2.low_balance);
+      (* Update storage *)
+      s.token_info[Constants.default_token_id] := token;
+      operations := list[
+        Tezos.transaction(
+            Unit,
+            to_mutez(to_burn),
+            (Tezos.get_contract_with_error(param.receiver, Errors.WrappedTezos.not_for_tez): contract(unit))
+          )
+      ];
+    }
+    else skip;
   } with (operations, s)
 
 function claim_baking_rewards(
