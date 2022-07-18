@@ -120,7 +120,7 @@ export const createProtocolParams = (
 };
 
 // Flextesa image
-const FLEXTESA_IMAGE = "oxheadalpha/flextesa:latest";
+const FLEXTESA_IMAGE = "oxheadalpha/flextesa:20220510";
 
 // Name for the running Docker image
 export const POD_NAME = "flextesa-sandbox";
