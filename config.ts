@@ -10,7 +10,7 @@ export const config = {
   networks: {
     sandbox: {
       rpc: "http://localhost:20000",
-      protocol: TezosProtocols.ITHACA,
+      protocol: TezosProtocols.JAKARTA,
       genesisBlockHash: "random",
       defaultSignerSK: "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq",
       accounts: {
