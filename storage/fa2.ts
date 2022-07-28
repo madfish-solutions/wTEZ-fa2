@@ -23,19 +23,19 @@ const tokenMetadata = MichelsonMap.fromLiteral({
 
 const metadata = MichelsonMap.fromLiteral({
   "": Buffer.from(
-    "ipfs://Qmej4GUjbvo6aa4qvRFrBF7TCYKZLL4SDPQGod6hXBPu1x",
+    "ipfs://QmezwTsQFRwWJAsjunZnf9pSXAAipWQF8Qj79u6G9a8n22",
     "ascii"
   ).toString("hex"),
   // metadata: Buffer.from(
   //   JSON.stringify({
   //     name: "Wrapped Tez",
-  //     version: "v1.0.3",
+  //     version: "v1.0.4",
   //     description: "Wrapped Tezos FA2",
   //     authors: ["Madfish.Solutions <https://www.madfish.solutions>"],
   //     source: {
   //       tools: ["Ligo", "Flextesa"],
   //       location:
-  //         "https://github.com/madfish-solutions/wTEZ-fa2/blob/v1.0.3/contracts/main/fa2.ligo",
+  //         "https://github.com/madfish-solutions/wTEZ-fa2/blob/v1.0.4/contracts/main/fa2.ligo",
   //     },
   //     interfaces: ["TZIP-012 git 1728fcfe", "TZIP-016"],
   //   }),

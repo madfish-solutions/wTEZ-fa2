@@ -177,13 +177,16 @@ function non_tz_main(
 block {
     non_tezos_call(Unit)
   } with case param of [
-      | Balance_of(params)          -> (get_balance_of(params, s), s)
-      | Set_admin(params)           -> (Constants.no_operations, set_admin(params, s))
-      | Approve_admin               -> (Constants.no_operations, approve_admin(s))
-      | Transfer(params)            -> (Constants.no_operations, transfer(s, params))
-      | Update_operators(params)    -> (Constants.no_operations, update_operators(s, params))
-      | Update_metadata(params)     -> (Constants.no_operations, update_metadata(params, s))
-      | Burn(params)                -> burn(params, s)
-      | Set_delegate(params)        -> delegate(params, s)
-      | Claim_baking_rewards(params)-> claim_baking_rewards(params, s)
-    ]
+    // storage update only actions
+    | Set_admin(params)           -> (Constants.no_operations, set_admin(params, s))
+    | Approve_admin               -> (Constants.no_operations, approve_admin(s))
+    | Transfer(params)            -> (Constants.no_operations, transfer(s, params))
+    | Update_operators(params)    -> (Constants.no_operations, update_operators(s, params))
+    | Update_metadata(params)     -> (Constants.no_operations, update_metadata(params, s))
+    // callback operations only action
+    | Balance_of(params)          -> (get_balance_of(params, s), s)
+    // storage update and operation create actions
+    | Burn(params)                -> burn(params, s)
+    | Set_delegate(params)        -> delegate(params, s)
+    | Claim_baking_rewards(params)-> claim_baking_rewards(params, s)
+  ]

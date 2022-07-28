@@ -11,7 +11,10 @@ function main(
   const s               : fa2_storage_t)
                         : return_t is
   case action of [
+  // actions without receiving Tezos
   | Non_tez_use(params)         -> non_tz_main(params, s)
+  // wrapping Tezos to wTEZ
   | Mint(params)                -> (Constants.no_operations, make_mint(params, s))
+  // for receiving baking rewards
   | Default                     -> (Constants.no_operations, s)
   ]
